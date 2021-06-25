@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入elementUI样式库 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- <link rel="stylesheet" href="./lib/css/elementUI_index.css"> -->
+    <!-- 引入tailwind css样式库 -->
+    <!-- <link rel="stylesheet" href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"> -->
+    <link rel="stylesheet" href="./lib/css/tailwind.min.css">
+    <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+    <script src="./lib/js/vue.js"></script>
+    <!-- 引入elementUI组件库 -->
+    <!-- <script src="https://unpkg.com/element-ui/lib/index.js"></script> -->
+    <script src="./lib/js/elementUI_index.js"></script>
+
+
+
+    <title>WebReport_v1.0</title>
+</head>
+
+<body>
+    <!-- title信息内容 -->
+    <div id="title">
+        <img src="./lib/images/logo.jpg" width="180px" class="pt-5 pl-5" alt="">
+        <p class="text-center text-3xl">10X单细胞数据分析报告</p>
+        <p class="text-right text-sm text-gray-400 mr-10 italic"> 推荐浏览器：Microsoft Edge, Google Chrome</p>
+        <p class="text-center text-sm text-gray-400 italic">
+            <strong>项目编号：</strong>PLT_ZBC_20210528_xxx &nbsp;
+            <strong>分析日期：</strong> 2021-05-28 &nbsp;
+            <strong>分析人员：</strong>李亚旗 &nbsp;
+            <strong>项目经理：</strong>贡一峰 &nbsp;
+            <strong>报告版本：</strong>v1.0.0
+        </p>
+    </div>
+
+    <!-- 正文和目录部分 -->
+    <div id="container" class="grid grid-cols-5 mx-10 mt-10">
+
+        <div id="column1" class="rounded-lg overflow-hidden fixed py-5 shadow-2xl">
+            <el-collapse v-model="activeName" accordion class="px-2">
+                <el-collapse-item title="一.数据质控" name="1">
+                    <li>
+                        <a href="#qc1">1.整体质控</a>
+                    </li>
+                    <li>
+                        <a href="#qc2">2.细胞基因数/UMI/线粒体基因数过滤</a>
+                    </li>
+                    <li>
+                        <a href="#qc3">3.UMI 数量与基因数量相关性分析</a>
+                    </li>
+
+                </el-collapse-item>
+                <el-collapse-item title="二.细胞聚类及可视化" name="2">
+                    <li>
+                        <a href="#tSNE_UMAP">1.tSNE及UMAP可视化</a>
+                    </li>
+                </el-collapse-item>
+                <el-collapse-item title="三.cluster/sample间差异分析" name="3">
+                    <li>
+                        <a href="#cluster_DE">1.细胞丰度分布</a>
+                    </li>
+                </el-collapse-item>
+                <el-collapse-item title="四.批次效应去除" name="4">
+                    <li>
+                        <a href="#batch_De">1.批次效应</a>
+                    </li>
+                </el-collapse-item>
+                <el-collapse-item title="五.marker genes可视化展示" name="5">
+                    <li>
+                        <a href="#marker_genes">1.heatmap/Dot plot/Feature plot</a>
+                    </li>
+                </el-collapse-item>
+                <el-collapse-item title="六.细胞类型注释" name="6">
+                    <li>
+                        <a href="#cellType">1.SingleR自动注释细胞类型</a>
+                    </li>
+                </el-collapse-item>
+
+                <el-collapse-item title="七.拟时序分析" name="7">
+                    <li>
+                        <a href="#pse_time">1.Monocle细胞发育轨迹分布</a>
+                    </li>
+                </el-collapse-item>
+                <el-collapse-item title="十三.参考文献" name="13">
+                    <a href="#ref">1.参考文献</a>
+                </el-collapse-item>
+
+                <el-collapse-item title="普罗亭公司Info" name="14">
+                    <a href=" #plt">1.普罗亭公司及合作单位</a>
+                </el-collapse-item>
+            </el-collapse>
+
+        </div>
+        <div></div>
+        <div id="column2" class="bg-blue-200 col-span-4 rounded-lg ml-10 mb-20 px-4 py-4 ">
+            <div class="pl-10 pr-5 py-5 ">
+                <p class="text-center text-lg text-blue-700 font-bold ">普罗亭-10X Genomics单细胞转录组测序分析项目概览</p>
+                <el-table :data="tableData" size="mini" height="350px">
+                    <el-table-column prop="type" sortable label="分析类别 ">
+                    </el-table-column>
+                    <el-table-column prop="name" label="分析内容 ">
+                    </el-table-column>
+
+                    <el-table-column prop="tag" label="分析属性 " width="120 " :filters="[{ text: '标准分析', value: '标准分析' }, { text: '个性化分析', value: '个性化分析' }] " :filter-method="filterTag" filter-placement="bottom-end">
+                        <template slot-scope="scope ">
+                      <el-tag
+                        :type="scope.row.tag==='标准分析' ? 'primary' : 'success' "
+                        disable-transitions>{{scope.row.tag}}</el-tag>
+                    </template>
+                    </el-table-column>
+
+                </el-table>
+            </div>
+            <div id="Total_QC">
+                <h1 class="text-lg text-black font-bold ">一.数据质控</h1>
+                <h1 id="qc1" class="text-base text-black font-bold ">1.整体质控</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    10x Genomics 官方分析软件 Cell Ranger[1]对原始数据进行数据质量统计，并比 对参考基因组，统计展示细胞捕获数、细胞基因检测中位数、有效数据率、测序饱和 度、基因组 Mapping 率等信息。
+                </p>
+                <img src="./Analysis_results/Total_QC/Total_QC.jpg" width="50% " style="left: 25%;position: relative; " class="py-2 ">
+
+                <h1 id="qc2" class="text-base text-black font-bold ">2.细胞基因数、UMI 数、线粒体基因数过滤</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    捕获到的细胞中，有些细胞为死细胞或 doublets。一般来说，死细胞检测到的基 因数很低且线粒体基因比例较高，doublets 检测到的基因数会较多。因此一般根据每 个细胞检测到基因数的上限与下限和每个细胞中检测到的线粒体基因比例，进行细胞 质控过滤，以保证后续分析结果的可靠性。
+                </p>
+
+                <select onchange="changePic(this.value) " class="my-2 ">
+                    <option value="./Analysis_results/Analysis_QC/vlnplot_before_qc">vlnplot_before_qc</option>
+                    <option value="./Analysis_results/Analysis_QC/vlnplot_after_qc">vlnplot_after_qc</option>
+
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme" src="./Analysis_results/Analysis_QC/vlnplot_before_qc.png" :preview-src-list="srcList ">
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+                <script>
+                    function changePic(path) {
+                        document.getElementById("showme").src = path + ".png";
+                    }
+                </script>
+            </div>
+            <div id="corr">
+                <h1 id="qc3" class="text-base text-black font-bold ">3.UMI 数量与基因数量相关性分析</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    随着测序数据量的增加，单细胞检测到的基因数量和UMI的数量也随之增加，两者之间有一定相关性，如出现明显离群的细胞，则有可能是潜在的doublets细胞， 在后续分析过程中应当删去。
+                </p>
+                <img src=" " alt=" ">
+                <select onchange="changePic2(this.value) " class="my-2 ">
+                    <option value="./Analysis_results/Analysis_QC/pearplot_before_qc">pearplot_before_qc</option>
+                    <option value="./Analysis_results/Analysis_QC/pearplot_after_qc">pearplot_after_qc</option>
+                    
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme2" src="./Analysis_results/Analysis_QC/pearplot_before_qc.png" :preview-src-list="corrs ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+                <script>
+                    function changePic2(path) {
+                        document.getElementById("showme2").src = path + ".png";
+                    }
+                </script>
+            </div>
+            <div id="tSNE_UMAP">
+                <h1 class="text-lg text-black font-bold ">二.细胞聚类及可视化</h1>
+                <h1 class="text-base text-black font-bold ">1.tSNE及UMAP可视化</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    高通量单细胞测序数据的一个显著特点就是数据量较大，10X Genomics可以一次检测多达10000个细胞， 极大地增强了鉴定细胞亚群的效力和有效性，本公司主要基于Seurat[2]程序包对细胞群体进行clustering analysis。 考虑到单细胞测序数据是一个高维的复杂数据，在进行细胞聚类前需要先将高维的单细胞数据降到合适的维度。首先进行PCA分析， 评估最显著的主成分，挑选贡献度较大的主成分进行聚类，并结合clustree程序包选择适当的resolutions值。根据聚类结果，分别采用t-SNE[3]和UMAP[4]降维算法在二维空间展示细胞的分布趋势。
+                </p>
+
+                <select onchange="changePic3(this.value) ">
+                    <option value="./Analysis_results/cluster/clus.tree.res">tree.resolutions</option>
+                    <option value="./Analysis_results/cluster/tSNE_by_cluster">tSNE</option>
+                    <option value="./Analysis_results/cluster/UMAP_by_cluster">UMAP</option>
+                    
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme3" src="./Analysis_results/cluster/clus.tree.res.png" :preview-src-list="Reducedim ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+
+                <script>
+                    function changePic3(path) {
+                        document.getElementById("showme3").src = path + ".png";
+                    }
+                </script>
+            </div>
+
+            <div id="cluster_DE">
+                <h1 class="text-lg text-black font-bold ">三.cluster/sample间差异分析</h1>
+                <h1 class="text-lg text-black font-bold ">1.细胞丰度分布</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    通过多样本cluster的占比情况，可以直观的呈现样本在不同cluster间/cluster 在不同样本间的分布差异，为后续进一步研究提供依据和线索。
+                </p>
+
+                <select onchange="changePic4(this.value) ">
+                    <option value="./Analysis_results/Statis_analysis/Abundance_boxplot">Abundance_boxplot</option>
+                    <option value="./Analysis_results/Statis_analysis/Freq_barplot">Freq_barplot</option>
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme4" src="./Analysis_results/Statis_analysis/Abundance_boxplot.png" :preview-src-list="percent ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+
+                <script>
+                    function changePic4(path) {
+                        document.getElementById("showme4").src = path + ".png";
+                    }
+                </script>
+            </div>
+
+            <div id="batch_De">
+                <h1 class="text-lg text-black font-bold ">四.批次效应去除</h1>
+                <h1 class="text-lg text-black font-bold ">1.批次效应</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    同一平台的不同时期的数据，同一个样品不同试剂的数据，以及同一个样品不同 时间上机的数据等都可能会使数据间产生系统误差，影响数据表达的生物学意义，因 此需要通过生信手段来去除批次效应产生的影响。
+                </p>
+
+                <select onchange="changePic5(this.value) ">
+                    <option value="./Analysis_results/Analysis_QC/batch_before">batch_before</option>
+                    <option value="./Analysis_results/Analysis_QC/batch_after">batch_after</option>
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme5" src="./Analysis_results/Analysis_QC/batch_before.png" :preview-src-list="batch ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+
+                <script>
+                    function changePic5(path) {
+                        document.getElementById("showme5").src = path + ".png";
+                    }
+                </script>
+            </div>
+            <div id="marker_genes">
+                <h1 class="text-lg text-black font-bold ">五.marker genes可视化展示</h1>
+                <h1 class="text-lg text-black font-bold ">1.heatmap/Dot plot/Feature plot</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    展示了对细胞聚类分析后鉴定到的每一个分群进行差异基因鉴定，每个亚群选择TOP10的差异基因做heatmap, Dot plot, Feature plot, Volin plot。
+                </p>
+
+                <select onchange="changePic6(this.value) ">
+                    <option value="./Analysis_results/cluster/top10genes_VlnPlotby_cluster">VlnPlot_by_cluster</option>
+                    <option value="./Analysis_results/cluster/top10genes_VlnPlot_by_group">VlnPlot_by_group</option>
+                    <option value="./Analysis_results/cluster/tSNE_top10genes_FeaturePlot_by_group">tSNE_FeaturePlot_by_group</option>
+                    <option value="./Analysis_results/cluster/tSNE_top10genes_FeaturePlot_by_cluster">tSNE_FeaturePlot_cluster</option>
+                    <option value="./Analysis_results/cluster/UMAP_top10genes_FeaturePlot_by_group">UMAP_FeaturePlot_by_group</option>
+                    <option value="./Analysis_results/cluster/UMAP_top10genes_FeaturePlot_by_cluster">UMAP_FeaturePlot_cluster</option>
+
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme6" src="./Analysis_results/cluster/top10genes_VlnPlotby_cluster.png" :preview-src-list="markerPlots ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+
+                <script>
+                    function changePic6(path) {
+                        document.getElementById("showme6").src = path + ".png";
+                    }
+                </script>
+            </div>
+            <div id="cellType">
+                <h1 class="text-lg text-black font-bold ">六.细胞类型注释</h1>
+                <h1 class="text-lg text-black font-bold ">1.SingleR自动注释细胞类型</h1>
+                <p class="text-base text-black leading-normal text-justify " style="text-indent:2rem; ">
+                    在鉴定了每个细胞分类的 marker 基因后可以通过 marker 基因鉴定每个 cluster 对应的真实细胞类型，采用 SingleR 提供的参考数据集对细胞类型进行鉴定，细胞注 释类型结果如下：
+                </p>
+
+                <select onchange="changePic7(this.value) ">
+                    <option value="./Analysis_results/cell_type/UMAP_celltype">UMAP</option>
+                    <option value="./Analysis_results/cell_type/tSNE_celltype">tSNE</option>
+
+                </select>
+                <div style="height: 400px; width:100%; display: flex " class="py-5 ">
+                    <el-scrollbar style="height:100% " class="px-10 ">
+                        <div>
+                            <el-image id="showme7" src="./Analysis_results/cell_type/UMAP_celltype.png" :preview-src-list="celltypes ">
+
+                            </el-image>
+                        </div>
+                    </el-scrollbar>
+                </div>
+
+                <script>
+                    function changePic7(path) {
+                        document.getElementById("showme7").src = path + ".png";
+                    }
+                </script>
+            </div>
+            <div id="ref">
+                <h1 class="text-lg text-black-400 font-bold ">参考文献：</h1>
+                <div class="text-black text-sm ">
+                    <p><b>1. </b> Zheng G X, Terry J M, Belgrader P, et al. Massively parallel digital transcriptional profiling of single cells[J]. Nature Communications, 2017.</p>
+                    <p><b>2. </b>Butler A , Hoffman P , Smibert P , et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species[J]. Nature Biotechnology, 2018.</p>
+                    <p><b>3. </b> Der Maaten L V, Hinton G E. Visualizing Data using t-SNE[J]. Journal of Machine Learning Research, 2008: 2579-2605.</p>
+                    <p><b>4. </b> Becht E, McInnes L, Healy J, Dutertre CA, Kwok IWH, Ng LG, Ginhoux F, Newell EW. Dimensionality reduction for visualizing single-cell data using UMAP. Nat Biotechnol. 2018 Dec 3.</p>
+                    <p><b>5. </b> Jin S, Guerrero-Juarez CF, Zhang L, Chang I, Ramos R, Kuan CH, Myung P, Plikus MV, Nie Q. Inference and analysis of cell-cell communication using CellChat. Nat Commun. 2021 Feb 17;12(1):1088.</p>
+                    <p>
+                        <b>6. </b> von Mering C, Huynen M, Jaeggi D, Schmidt S, Bork P, Snel B. STRING: a database of predicted functional associations between proteins. Nucleic Acids Res. 2003 Jan 1;31(1):258-61.
+                    </p>
+                    <p><b>7. </b> Feng C, Song C, Liu Y, Qian F, Gao Y, Ning Z, Wang Q, Jiang Y, Li Y, Li M,Chen J, Zhang J, Li C. KnockTF: a comprehensive human gene expression profiledatabase with knockdown or knockout of transcription factors. Nucleic
+                        Acids Res.2019 Oct 10.</p>
+                    <p><b>8. </b> Yu G, Wang LG, Han Y, He QY. clusterProfiler: an R package for comparing biological themes among gene clusters. OMICS. 2012 May;16(5):284-7.</p>
+                    <p><b>9. </b> Luo W, Brouwer C. Pathview: an R/Bioconductor package for pathway-based data integration and visualization. Bioinformatics. 2013 Jul 15;29(14):1830-1.</p>
+                    <p><b>10. </b> Yu G, He QY. ReactomePA: an R/Bioconductor package for reactome pathway analysis and visualization. Mol Biosyst. 2016 Feb;12(2):477-9.</p>
+                    <p><b>11. </b> Hänzelmann S, Castelo R, Guinney J. GSVA: gene set variation analysis for microarray and RNA-seq data. BMC Bioinformatics. 2013 Jan 16;14:7.</p>
+                    <p><b>12. </b> Gao R, Bai S, Henderson YC, Lin Y, Schalck A, Yan Y, Kumar T, Hu M, Sei E, Davis A, Wang F, Shaitelman SF, Wang JR, Chen K, Moulder S, Lai SY, Navin NE. Delineating copy number and clonal substructure in human tumors from
+                        single-cell transcriptomes. Nat Biotechnol. 2021 May;39(5):599-608.</p>
+                    <p><b>13. </b> Langfelder P, Horvath S. WGCNA: an R package for weighted correlation network analysis. BMC Bioinformatics. 2008 Dec 29;9:559.</p>
+
+                </div>
+            </div>
+
+            <!-- 页脚部分-->
+            <div id="footer">
+
+                <h1 id="plt" class="text-2xl text-balck-400 font-bold text-center mt-20">普罗亭公司及合作单位</h1>
+                <div id="cooperation_unit " class="mx-10 rounded-lg ">
+                    <p class="text-lg text-blue-700 font-bold text-center ">合作单位</p>
+                    <img class="rounded-lg transition duration-500 ease-in-out transform hover:shadow-2xl " src="lib/images/cooperation.jpg " alt=" ">
+                </div>
+                <div id="footer_part " class="bg-black text-white mx-10 mt-10 mb-10 rounded-lg transition duration-500 ease-in-out transform hover:shadow-2xl ">
+                    <div id="introduce " class="grid grid-cols-6 gap-4 pl-20 pt-5 ">
+                        <div id="cont1 ">
+                            <p class="text-lg text-gray-400 font-bold ">关于普罗亭</p>
+                            <ul class="text-sm text-gray-400 ">
+                                <li>
+                                    <a href="http://plttech.com/web/guest/about ">公司简介</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/culture ">企业文化</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/history ">发展历程</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div id="cont2 ">
+                            <p class="text-lg text-gray-400 font-bold ">科研合作</p>
+                            <ul class="text-sm text-gray-400 ">
+                                <li>
+                                    <a href="http://plttech.com/web/guest/solution ">单细胞精准研究解决方案</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/qa ">Q&A</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div id="cont3 ">
+                            <p class="text-lg text-gray-400 font-bold ">创新转化</p>
+                            <ul class="text-sm text-gray-400 ">
+                                <li>
+                                    <a href="http://plttech.com/web/guest/platform ">研发平台</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/cytof ">质谱流式细胞技术平台</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/bfp ">单分子蛋白质原位动态检测技术平台</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/bioinfo_analysis ">单细胞生物信息学分析平台</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/box ">质谱流式检测试剂盒</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div id="cont4 ">
+                            <p class="text-lg text-gray-400 font-bold ">新闻中心</p>
+                            <ul class="text-sm text-gray-400 ">
+                                <li>
+                                    <a href="http://plttech.com/web/guest/research ">研究资讯</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/news ">企业新闻</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/immpop ">免疫小科普</a>
+                                </li>
+                            </ul>
+
+                        </div>
+                        <div id="cont5 ">
+                            <p class="text-lg text-gray-400 font-bold ">联系我们</p>
+                            <ul class="text-sm text-gray-400 ">
+                                <li>
+                                    <a href="http://plttech.com/web/guest/business ">服务咨询</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/social ">社会招聘</a>
+                                </li>
+                                <li>
+                                    <a href="http://plttech.com/web/guest/university ">校园招聘</a>
+                                </li>
+                            </ul>
+
+                        </div>
+                        <div id="cont6 ">
+                            <p class="text-lg text-gray-400 font-bold ">微信公众号</p>
+                            <img src="lib/images/weChat.jpg " width="50% " alt=" ">
+
+                        </div>
+                    </div>
+
+                    <div id="other " class="text-sm text-gray-400 text-center my-4 pb-5 ">
+                        <p>Copyright @ 2020 PLTTECH. All Rights Reserved. 浙ICP备16003691号</p>
+                        <p>浙江普罗亭健康科技有限公司</p>
+                        <p>联系方式：18106535583 地址：浙江省杭州市文一西路1500号5号楼14层</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+</body>
+
+<script>
+    const img1 = "./Analysis_results/Analysis_QC/vlnplot_before_qc.png "
+    const img2 = "./Analysis_results/Analysis_QC/vlnplot_after_qc.png "
+
+    const corr1 = "./Analysis_results/Analysis_QC/pearplot_before_qc.png "
+    const corr2 = "./Analysis_results/Analysis_QC/pearplot_after_qc.png "
+
+    const Reducedim1 = "./Analysis_results/cluster/clus.tree.res.png "
+    const Reducedim2 = "./Analysis_results/cluster/tSNE_by_cluster.png "
+    const Reducedim3 = "./Analysis_results/cluster/UMAP_by_cluster.png "
+    const percent1 = "./Analysis_results/Statis_analysis/Abundance_boxplot.png "
+    const percent2 = "./Analysis_results/Statis_analysis/Freq_barplot.png "
+
+    const batch1 = "./Analysis_results/Analysis_QC/batch_before.png "
+    const batch2 = "./Analysis_results/Analysis_QC/batch_after.png "
+
+    const markerPlot1 = "./Analysis_results/cluster/top10genes_VlnPlotby_cluster.png "
+    const markerPlot2 = "./Analysis_results/cluster/top10genes_VlnPlot_by_group.png "
+    const markerPlot3 = "./Analysis_results/cluster/tSNE_top10genes_FeaturePlot_by_cluster.png "
+    const markerPlot4 = "./Analysis_results/cluster/tSNE_top10genes_FeaturePlot_by_group.png "
+    const markerPlot5 = "./Analysis_results/cluster/UMAP_top10genes_FeaturePlot_by_group.png "
+    const markerPlot6 = "./Analysis_results/cluster/UMAP_top10genes_FeaturePlot_by_cluster.png "
+
+    const celltype1 = "./Analysis_results/cell_type/UMAP_celltype.png "
+    const celltype2 = "./Analysis_results/cell_type/tSNE_celltype.png "
+
+    const container = new Vue({
+        el: "#container ",
+        data() {
+            return {
+                Reducedim: [Reducedim1, Reducedim2, Reducedim3],
+                corrs: [corr1, corr2],
+                srcList: [
+                    img1,
+                    img2
+                ],
+                percent: [percent1, percent2],
+                batch: [batch1, batch2],
+                markerPlots: [markerPlot1, markerPlot2, markerPlot3, markerPlot4, markerPlot5, markerPlot6],
+                celltypes: [celltype1, celltype2],
+                tableData: [{
+                        type: '数据质控',
+                        name: '整体质控',
+                        tag: '标准分析'
+                    }, {
+                        type: '数据质控',
+                        name: '基因表达水平，UMIs水平统计',
+                        tag: '标准分析'
+                    }, {
+                        type: '细胞聚类及可视化',
+                        name: 'tSNE聚类及可视化',
+                        tag: '标准分析'
+                    }, {
+                        type: '细胞聚类及可视化',
+                        name: 'UMAP聚类及可视化',
+                        tag: '标准分析'
+                    }, {
+                        type: 'cluster间差异分析',
+                        name: 'sample/cell cluster间差异统计分析',
+                        tag: '标准分析'
+                    }, {
+                        type: '批次效应去除',
+                        name: '去除不同时间取样，上机等产生的系统误差',
+                        tag: '标准分析'
+                    }, {
+                        type: '细胞类型注释',
+                        name: 'SingleR定义细胞类型，tSNE可视化细胞类型，UMAP可视化细胞类型',
+                        tag: '标准分析'
+                    }, {
+                        type: 'marker genes可视化展示',
+                        name: 'heatmap, Dot plot, Feature plot, Volin图',
+                        tag: '标准分析'
+                    }, {
+                        type: '拟时序分析',
+                        name: '细胞拟时序状态轨迹分布及可视化',
+                        tag: '个性化分析'
+                    }, {
+                        type: '细胞通讯',
+                        name: '基于受体配体互作预测细胞间的联系',
+                        tag: '个性化分析'
+                    }, {
+                        type: '差异基因分析',
+                        name: '差异基因火山图',
+                        tag: '标准分析'
+                    }, {
+                        type: '基因功能网络构建',
+                        name: 'PPI网络',
+                        tag: '个性化分析'
+                    }, {
+                        type: '基因功能网络构建',
+                        name: 'TF-靶基因网络',
+                        tag: '个性化分析'
+                    }, {
+                        type: '基因功能富集分析',
+                        name: 'GO/KEGG/Reactome富集分析',
+                        tag: '个性化分析'
+                    }, {
+                        type: '基因功能富集分析',
+                        name: 'Pathview',
+                        tag: '个性化分析'
+                    }, {
+                        type: '基因功能富集分析',
+                        name: 'GSEA',
+                        tag: '个性化分析'
+                    }, {
+                        type: '基因功能富集分析',
+                        name: 'GSVA',
+                        tag: '个性化分析'
+                    }, {
+                        type: '单细胞CNV分析',
+                        name: '区分肿瘤和非肿瘤细胞以及预测肿瘤细胞基因组的拷贝数变异',
+                        tag: '个性化分析'
+                    }, {
+                        type: 'WGCNA',
+                        name: '加权基因共表达网络分析（样本表型/cluster与模块相关性分析）',
+                        tag: '个性化分析'
+                    }
+
+                ]
+            }
+        },
+        methods: {
+            filterTag(value, row) {
+                return row.tag === value;
+            }
+        }
+    })
+</script>
+
+</html>
